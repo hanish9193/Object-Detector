@@ -34,9 +34,72 @@ import os
 import platform
 import sys
 from pathlib import Path
-
+from collections import deque
 import torch
+from collections import deque
+from collections import deque
+import numpy as np
+import cv2
 
+from collections import deque
+from collections import deque
+import numpy as np
+import cv2
+
+from collections import deque
+import numpy as np
+import cv2
+
+class ObjectTracker:
+    def __init__(self, max_history=50):
+        self.tracks = {}  # Stores object tracks
+        self.max_history = max_history  # Maximum history length for each track
+
+    def update(self, detections, frame):
+        """
+        Update object tracks with new detections.
+        Args:
+            detections (list): List of detections in the format [x1, y1, x2, y2, conf, cls].
+            frame (numpy.ndarray): Current frame for visualization.
+        """
+        for *xyxy, conf, cls in detections:
+            x1, y1, x2, y2 = map(int, xyxy)
+            center = ((x1 + x2) // 2, (y1 + y2) // 2)  # Center of the bounding box
+
+            if cls == 0:  # Only track people (class 0 in COCO dataset)
+                print(f"Person detected at: {center}")  # Debugging statement
+                if cls not in self.tracks:
+                    self.tracks[cls] = deque(maxlen=self.max_history)
+                self.tracks[cls].append(center)
+
+                # Draw the track
+                if len(self.tracks[cls]) > 1:
+                    for i in range(1, len(self.tracks[cls])):
+                        cv2.line(frame, self.tracks[cls][i - 1], self.tracks[cls][i], (0, 255, 0), 2)
+
+                # Detect suspicious behavior (e.g., fast movement)
+                if len(self.tracks[cls]) > 3:  # Reduced tracking history
+                    prev_position = np.array(self.tracks[cls][-3])  # Position 3 frames ago
+                    curr_position = np.array(self.tracks[cls][-1])  # Current position
+                    distance = np.linalg.norm(curr_position - prev_position)  # Distance between positions
+                    speed = distance / 3  # Speed = distance / number of frames
+                    print(f"Previous position: {prev_position}, Current position: {curr_position}")
+                    print(f"Distance: {distance}, Speed: {speed}")  # Debugging statement
+
+                    # Condition 1: Fast movement
+                    if speed > 5:  # Lower threshold for faster detection
+                        cv2.putText(frame, "Suspicious Activity: Fast Movement!", (x1, y1 - 10),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
+                        print("Theft or suspicious activity detected: Fast Movement!")
+
+                    # Condition 2: Close proximity to another person
+                    for other_cls, other_track in self.tracks.items():
+                        if other_cls != cls and len(other_track) > 0:
+                            distance = np.linalg.norm(np.array(self.tracks[cls][-1]) - np.array(other_track[-1]))
+                            if distance < 100:  # Threshold for proximity (in pixels)
+                                cv2.putText(frame, "Suspicious Activity: Close Proximity!", (x1, y1 - 30),
+                                            cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
+                                print("Theft or suspicious activity detected: Close Proximity!")
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
 if str(ROOT) not in sys.path:
@@ -162,11 +225,13 @@ def run(
     (save_dir / "labels" if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
     # Load model
+    # Initialize object tracker
+
     device = select_device(device)
     model = DetectMultiBackend(weights, device=device, dnn=dnn, data=data, fp16=half)
     stride, names, pt = model.stride, model.names, model.pt
     imgsz = check_img_size(imgsz, s=stride)  # check image size
-
+    tracker = ObjectTracker()
     # Dataloader
     bs = 1  # batch_size
     if webcam:
@@ -227,6 +292,8 @@ def run(
                 writer.writerow(data)
 
         # Process predictions
+        # Process predictions
+        # Process predictions
         for i, det in enumerate(pred):  # per image
             seen += 1
             if webcam:  # batch_size >= 1
@@ -242,14 +309,18 @@ def run(
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             imc = im0.copy() if save_crop else im0  # for save_crop
             annotator = Annotator(im0, line_width=line_thickness, example=str(names))
+
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
 
+                # Update object tracker
+                tracker.update(det, im0)  # Pass detections to the tracker
+
                 # Print results
                 for c in det[:, 5].unique():
                     n = (det[:, 5] == c).sum()  # detections per class
-                    s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
+                    s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string # add to string  # add to string  # add to string
 
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
