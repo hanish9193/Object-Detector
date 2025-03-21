@@ -82,7 +82,7 @@ python train.py --data custom_dataset.yaml --epochs 50 --weights yolov5s.pt
 
 ## 📌 Example Output
 
-![Detection Output](https://user-images.githubusercontent.com/example/output.png)
+![Detection Output](Object-Detector-YOLOV5/Screenshot 2025-03-21 220032.png)
 
 ## 🤝 Contributing
 
