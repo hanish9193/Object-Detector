@@ -82,7 +82,7 @@ python train.py --data custom_dataset.yaml --epochs 50 --weights yolov5s.pt
 
 ## 📌 Example Output
 
-![Detection Output](output/Screenshot 2025-03-21 220032.png)
+![Detection Output](Screenshot 2025-03-21 220032.png)
 
 ## 🤝 Contributing
 
